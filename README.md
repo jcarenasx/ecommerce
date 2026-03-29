@@ -115,9 +115,10 @@ COOKIE_SECURE=false
 - `CartPanel` muestra subtotal, shipping gratuito y permite ajustar cantidades con mutaciones que sincronizan server/guest.
 - Hooks `useProducts`, `useCart`, `useOrders`, `useAdminProducts`, `useAdminOrders` encapsulan lógica de datos y mutaciones.
 
-### Integraciones clave
+-### Integraciones clave
 
 - `frontend/src/lib/api.ts`: define `API_BASE_URL` (actualmente `http://localhost:4000`) y encapsula todas las llamadas REST con `credentials: include` para usar cookies.
+- `frontend/src/lib/axiosInstance.ts`: instancia Axios con `withCredentials`, timeout, interceptores potenciales y manejo centralizado de errores, lo que permite aplicar headers globales, retry y transformación del payload antes/después de cada llamada.
 - `guestCart.ts`: persiste ítems en `guest_cart_items` y sincroniza (`syncGuestCartToServer`) justo después de login/registro.
 - `CartContext` sincroniza con `localStorage` (clave `ecommerce_cart`) y expone helpers de UI.
 - `frontend/src/lib/axiosInstance.ts`: instancia Axios con `withCredentials`, timeout y base URL reutilizable para proyectar un patrón enterprise estándar.
@@ -194,3 +195,31 @@ npm run lint
 2. Añadir tests end-to-end (`Cypress`/`Playwright`) y unitarios para hooks críticos.
 3. Mejorar roles (colocar un dashboard para `operator`/`customer support`) y métricas de órdenes.
 4. Externalizar imágenes de productos con CDN + optimizaciones de caching.
+
+## Guía de pruebas manuales
+
+1. **Login y autenticación**  
+   - Usa `/auth/register` o el modal de frontend para crear una cuenta y verifica que `AuthModal` muestra errores cuando las credenciales son inválidas.  
+   - Repite el flujo con `login`, comprueba que la cookie `ecom_access` llega al navegador y que `useAuth` carga el contexto (observa el banner en `Navbar`).
+
+2. **Carrito persistente (invitado vs. usuario)**  
+   - Añade productos al carrito sin estar autenticado. Cierra/recarga la pestaña y observa que `localStorage` (`ecommerce_cart`) mantiene los ítems.  
+   - Haz login, asegúrate de que `syncGuestCartToServer` vacía `guest_cart_items` y que los datos aparecen en `/cart` del backend.  
+   - Intenta editar cantidades y eliminar para validar los endpoints `PUT/DELETE /cart/:productId` y su reflejo en el UI.
+
+3. **Checkout completo**  
+   - Con carrito no vacío, navega a `/checkout`. Verifica que el panel muestra totales correctos y que el botón `Confirmar compra` lanza `POST /orders`.  
+   - Comprueba en `AdminOrdersPage` que la orden aparece con el snapshot de productos, y cambia su estado para validar `/api/admin/orders/:id/status`.
+
+## Capturas sugeridas
+
+> Reemplaza los placeholders con las capturas finales (`PNG`/`webp`) antes de publicar el repo.
+
+- **Home (tienda pública)**  
+  ![Home placeholder](docs/screenshots/home.png)
+
+- **Admin Panel (productos y órdenes)**  
+  ![Admin placeholder](docs/screenshots/admin.png)
+
+- **Checkout (resumen y confirmación)**  
+  ![Checkout placeholder](docs/screenshots/checkout.png)
