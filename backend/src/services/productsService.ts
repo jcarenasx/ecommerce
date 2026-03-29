@@ -7,7 +7,7 @@ import {
   updateProduct as updateProductRecord,
   deleteProduct as deleteProductRecord,
   ProductPayload,
-} from "../models/productModel";
+} from "../repository/productRepository";
 
 function normalizePayload(payload: ProductPayload): ProductPayload {
   return {

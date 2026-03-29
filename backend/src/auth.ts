@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import type { Request, Response } from "express";
-import { env } from "./env";
+import { config } from "./config";
 
 export type JwtPayload = {
   sub: string;
@@ -19,33 +19,33 @@ function isJwtPayload(value: unknown): value is JwtPayload {
 }
 
 export function signAccessToken(payload: JwtPayload): string {
-  return jwt.sign(payload, env.JWT_ACCESS_SECRET, {
+  return jwt.sign(payload, config.jwtAccessSecret, {
     algorithm: "HS256",
     expiresIn: "15m",
   });
 }
 
 export function verifyAccessToken(token: string): JwtPayload {
-  const decoded = jwt.verify(token, env.JWT_ACCESS_SECRET);
+  const decoded = jwt.verify(token, config.jwtAccessSecret);
   if (!isJwtPayload(decoded)) throw new Error("Invalid token");
   return { sub: decoded.sub, role: decoded.role };
 }
 
 export function setAuthCookie(res: Response, token: string) {
-  res.cookie(env.COOKIE_NAME, token, {
+  res.cookie(config.cookieName, token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: env.COOKIE_SECURE,
+    secure: config.cookieSecure,
     path: "/",
     maxAge: 15 * 60 * 1000,
   });
 }
 
 export function clearAuthCookie(res: Response) {
-  res.clearCookie(env.COOKIE_NAME, {
+  res.clearCookie(config.cookieName, {
     httpOnly: true,
     sameSite: "lax",
-    secure: env.COOKIE_SECURE,
+    secure: config.cookieSecure,
     path: "/",
   });
 }

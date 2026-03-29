@@ -1,8 +1,6 @@
-import type { Prisma } from "@prisma/client";
-import { prisma } from "../prisma";
 import { ServiceError } from "../utils/errors";
-import { fetchCartItemsWithProducts } from "../models/cartModel";
-import { fetchOrdersForUser } from "../models/orderModel";
+import { fetchCartItemsWithProducts } from "../repository/cartRepository";
+import { createOrderWithItems, fetchOrdersForUser } from "../repository/orderRepository";
 import type { CartItemWithProduct, OrderWithItems } from "../types";
 
 export async function listOrdersForUser(userId: string): Promise<OrderWithItems[]> {
@@ -21,27 +19,5 @@ export async function createOrderFromCart(userId: string): Promise<OrderWithItem
     0
   );
 
-  const order = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-    const createdOrder = await tx.order.create({
-      data: {
-        userId,
-        totalCents,
-        items: {
-          create: cartItems.map((item) => ({
-            productId: item.productId,
-            name: item.product.name,
-            priceCents: item.product.priceCents,
-            quantity: item.quantity,
-          })),
-        },
-      },
-      include: { items: true },
-    });
-
-    await tx.cartItem.deleteMany({ where: { userId } });
-
-    return createdOrder;
-  });
-
-  return order;
+  return createOrderWithItems(userId, cartItems, totalCents);
 }

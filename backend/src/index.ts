@@ -1,7 +1,7 @@
 import cookieParser from "cookie-parser";
 import cors from "cors";
 import express from "express";
-import { env } from "./env";
+import { config } from "./config";
 import { prisma } from "./prisma";
 import authRouter from "./routes/auth";
 import productsRouter from "./routes/products";
@@ -13,7 +13,7 @@ const app = express();
 
 app.use(
   cors({
-    origin: env.WEB_ORIGIN,
+    origin: config.webOrigin,
     credentials: true,
   })
 );
@@ -30,8 +30,8 @@ async function startServer() {
     await prisma.$connect();
     console.log("Prisma connected");
 
-    const server = app.listen(env.PORT, () => {
-      console.log(`Backend listening on http://localhost:${env.PORT}`);
+    const server = app.listen(config.port, () => {
+      console.log(`Backend listening on http://localhost:${config.port}`);
     });
 
     const shutdown = async (signal: NodeJS.Signals) => {

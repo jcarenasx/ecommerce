@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import { ServiceError } from "../utils/errors";
-import { createUser, findUserByEmail, findUserById } from "../models/userModel";
+import { createUser, findUserByEmail, findUserById } from "../repository/userRepository";
 import type { User } from "../types";
 
 export type RegisterInput = {
