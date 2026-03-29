@@ -1,22 +1,29 @@
-# Ecommerce Store (Full-stack Demo)
+# E-commerce Software Solution
 
 ## Table of contents
 
-1. [Proyecto](#proyecto)
+1. [Visión](#visión)
 2. [Arquitectura](#arquitectura)
-3. [Backend](#backend)
-4. [Frontend](#frontend)
-5. [Setup de desarrollo](#setup-de-desarrollo)
-6. [Base de datos](#base-de-datos)
-7. [Autenticación](#autenticacion)
-8. [Flujo administrativo](#flujo-administrativo)
-9. [Calidad y mantenimiento](#calidad-y-mantenimiento)
-10. [Despliegue](#despliegue)
-11. [Próximos pasos](#proximos-pasos)
+3. [Decisiones de ingeniería](#decisiones-de-ingeniería)
+4. [Backend](#backend)
+5. [Frontend](#frontend)
+6. [Setup de desarrollo](#setup-de-desarrollo)
+7. [Base de datos](#base-de-datos)
+8. [Autenticación](#autenticación)
+9. [Flujo administrativo](#flujo-administrativo)
+10. [Guía de pruebas manuales](#guía-de-pruebas-manuales)
+11. [Capturas sugeridas](#capturas-sugeridas)
+12. [Calidad y mantenimiento](#calidad-y-mantenimiento)
+13. [Despliegue](#despliegue)
+14. [Próximos pasos](#próximos-pasos)
 
-## Proyecto
+## Visión
 
-Aplicación de comercio electrónico full-stack con catálogo público, carrito persistente y panel administrativo. La tienda permite registros y logins con JWT en cookie segura, diseño responsive y uso de React Query para mantener los datos sincronizados entre cliente y servidor.
+Solución integral de software para e-commerce.
+
+Aplicación full-stack diseñada para la comercialización de productos, que implementa un flujo completo de compra para clientes, junto con un panel de administración para la gestión de productos, inventario, usuarios y pedidos.
+
+Construida con una arquitectura desacoplada entre frontend y backend, enfocada en escalabilidad, mantenibilidad y buenas prácticas de ingeniería.
 
 ## Arquitectura
 
@@ -24,6 +31,14 @@ Aplicación de comercio electrónico full-stack con catálogo público, carrito 
 - `frontend/`: SPA construida con Vite + React 19 + React Router 7 + React Query 5 + Tailwind CSS, con contextos para autenticación y carrito.
 - Comunicación protegida por cookies HTTP-only (`ecom_access`) y CORS restringido al origen configurado en `WEB_ORIGIN`.
 - Separación clara de responsabilidad y scripts independientes para cada paquete.
+
+## Decisiones de ingeniería
+
+- **Axios**: cliente HTTP centralizado con interceptores para gestión global de errores, renovación de sesión y aplicación de headers comunes.
+- **React Query**: sincronización del estado del servidor, caché e invalidación específica para mantener los datos consistentes sin sobrecargar las peticiones.
+- **Context API**: estados globales ligeros (auth y carrito) que priorizan simplicidad y rendimiento frente a soluciones más pesadas como Redux o Zustand.
+- **Prisma + PostgreSQL**: tipado fuerte en el backend, integridad referencial y pipeline de migraciones/migrations que mantiene la base de datos alineada con el modelo del dominio.
+- **Seguridad (HTTP-Only Cookies)**: mitigación de riesgos XSS almacenando tokens de sesión exclusivamente en el servidor; el frontend nunca sintetiza los JWT en memoria.
 
 ## Backend
 
@@ -115,7 +130,7 @@ COOKIE_SECURE=false
 - `CartPanel` muestra subtotal, shipping gratuito y permite ajustar cantidades con mutaciones que sincronizan server/guest.
 - Hooks `useProducts`, `useCart`, `useOrders`, `useAdminProducts`, `useAdminOrders` encapsulan lógica de datos y mutaciones.
 
--### Integraciones clave
+### Integraciones clave
 
 - `frontend/src/lib/api.ts`: define `API_BASE_URL` (actualmente `http://localhost:4000`) y encapsula todas las llamadas REST con `credentials: include` para usar cookies.
 - `frontend/src/lib/axiosInstance.ts`: instancia Axios con `withCredentials`, timeout, interceptores potenciales y manejo centralizado de errores, lo que permite aplicar headers globales, retry y transformación del payload antes/después de cada llamada.
