@@ -114,6 +114,7 @@ COOKIE_SECURE=false
 ### Stack y estructura
 
 - `Vite` con `@vitejs/plugin-react`.
+- Axios: Cliente HTTP con instancia centralizada e interceptores para gestión de sesión.
 - React 19 + TypeScript con configuración en `tsconfig.app.json`.
 - Tailwind CSS via `@tailwindcss/vite` plugin.
 - Router: React Router DOM 7 (routes declarativas en `App.tsx`).
