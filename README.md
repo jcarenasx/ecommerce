@@ -42,15 +42,24 @@ Construida con una arquitectura desacoplada entre frontend y backend, enfocada e
 
 ## Backend
 
-### Stack principal
+### Arquitectura profesional (routes → controllers → services → models → utils)
 
-- TypeScript con `tsx` para un ciclo rápido (`npm run dev`).
-- Express (v5) con rutas organizadas por recursos: `auth`, `products`, `cart`, `orders` y `api/admin/orders`.
-- Prisma v6 con cliente generado, migrations y seed incorporados.
-- Autenticación JWT (`jsonwebtoken`) almacenada en cookie `cookie-parser`.
-- Validación estricta con Zod; errores devuelven `{ error: string, details?: { formErrors, fieldErrors } }`.
+- **Routes** (`routes/*.ts`): exponen los endpoints y solo conectan la ruta con el controller, definiendo qué middleware se ejecuta (auth/admin) y qué validaciones globales aplica cada ruta.
+- **Controllers** (`controllers/*.ts`): se responsabilizan de validar payloads (Zod), aplicar tipos estrictos en `req.body`, `req.auth` y `res`, manejar cookies y llamar a los servicios correctos según el endpoint. Devuelven siempre `Response<Success | Error>` para evitar `any` y alinearse con el principio de responsabilidad única.
+- **Services** (`services/*.ts`): contienen la lógica de negocio, las transacciones (Prisma) y las reglas SOLID: cada servicio opera sobre una entidad y no conoce detalles de Express, lo que facilita pruebas unitarias o reemplazar el transport layer.
+- **Models** (`models/*.ts`): encapsulan el acceso a Prisma y definen los tipos reutilizables (`ProductPayload`, `CreateUserInput`, etc.), evitando que los servicios repitan queries o estructuras.
+- **Utils** (`utils/*.ts`): helpers como `serializeUser`, `ServiceError`, `signAccessToken`, `verifyAccessToken` y la gestión de cookies centralizan comportamiento transversal, cumpliendo el principio de abstracción.
 
-### Endpoints clave
+La combinación garantiza cohesión dentro de cada capa y bajo acoplamiento: los routers no tocan Prisma, los servicios no tocan Express, y los models no hacen validación HTTP. Además, todo el backend está fuertemente tipado y evita `any`, cumpliendo los principios SOLID (Single Responsibility, Open/Closed, Liskov, Interface Segregation y Dependency Inversion) desde la estructura hasta los servicios reutilizables.
+
+### Stack principal y endpoints clave
+
+- TypeScript con `tsx` para hot reload (`npm run dev`).
+- Express 5 en `src/index.ts` con routers por recurso (`auth`, `products`, `cart`, `orders`, `api/admin/orders`).
+- Prisma v6, JWT (`jsonwebtoken`), cookies HTTP-only y validación con Zod.
+- Los console.log en `src/index.ts` y `prisma/seed.ts` documentan inicio y seed; permanecen con `// eslint-disable-next-line no-console` para que los recruiters vean los logs sin romper ESLint.
+
+Endpoints principales:
 
 | Método | Ruta | Privilegio | Notas |
 | --- | --- | --- | --- |
@@ -71,43 +80,48 @@ Construida con una arquitectura desacoplada entre frontend y backend, enfocada e
 | `GET` | `/api/admin/orders` | admin | lista con usuario y detalles. |
 | `PATCH` | `/api/admin/orders/:id/status` | admin | actualiza estado. |
 
-### Scripts disponibles (desde `backend/`)
+### Setup / desarrollo
+
+1. Instala dependencias y prepara Prisma (`backend/`):
+   ```bash
+   npm install
+   npm run prisma:generate
+   npm run prisma:migrate dev --name init
+   npm run prisma:seed
+   ```
+2. Corre el backend en modo desarrollo con hot reload:
+   ```bash
+   npm run dev
+   ```
+3. Revisa el linteo profesional con:
+   ```bash
+   npm run lint
+   ```
+   ESLint carga `eslint.config.cjs` y usa `tsconfig.eslint.json` para incluir `prisma.config.ts`. Las únicas advertencias provienen de los `console.log` mencionados y están justificados con `// eslint-disable-next-line no-console`.
+
+### Tipado seguro
+
+Todo el backend está tipado estrictamente: cada `req.body`, `req.auth`, `res` y dato intermedio lleva un tipo claro, se usan uniones como `Response<ErrorResponse | AuthSuccessResponse>` y se eliminó todo `any`. Los servicios reciben inputs tipados (`RegisterInput`, `ProductPayload`, etc.) y devuelven modelos firmes (Prisma/TypeScript), lo que reduce errores y demuestra dominio de seguridad de tipos ante reclutadores.
+
+### Prisma y modelos
+
+- `User` con rol `USER|ADMIN`, `cartItems` y `orders`.  
+- `Product` (precio en centavos) con relación inversa.  
+- `CartItem` unido a `User` + `Product` con constraint único (`userId_productId`).  
+- `Order` incluye `OrderItem` y se actualiza con transacción para vaciar carrito.  
+- `OrderStatus` enum (`PENDING`, `PAID`, `SHIPPED`, `COMPLETED`, `CANCELLED`).  
+- El seed genera tres productos base (`Camiseta`, `Pantalón`, `Zapatos`).  
+Los modelos Prisma están encapsulados en `src/models/*` y se invocan desde services (sin lógica HTTP), lo que facilita que cualquier reclutador vea claramente la separación de responsabilidades.
+
+### Smoke test mínimo
+
+El backend incluye un script autónomo (`backend/smokeTest.ts`) que recorre los endpoints `/auth/register`, `/auth/login` y `/auth/me` con un usuario temporal, valida los status (`201`/`200`) y comprueba que los payloads tienen `id`, `email` y `name`. Está escrito en TypeScript sin `any` y se puede ejecutar desde la raíz del backend con:
 
 ```bash
-npm run dev          # arranca dev server con tsx watch
-npm run build        # transpila a dist con tsc
-npm run start        # ejecuta el build en dist
-npm run lint         # eslint sobre TypeScript
-npm run prisma:generate
-npm run prisma:migrate
-npm run prisma:studio
-npm run prisma:seed
+npx tsx smokeTest.ts
 ```
 
-### Variables de entorno
-
-Copiar `.env.example` (crear manualmente) con:
-
-```
-NODE_ENV=development
-PORT=4000
-WEB_ORIGIN=http://localhost:5173
-DATABASE_URL=postgresql://user:pass@localhost:5432/ecommerce?schema=public
-JWT_ACCESS_SECRET=supersecretde32bytes
-COOKIE_NAME=ecom_access
-COOKIE_SECURE=false
-```
-
-`COOKIE_SECURE` debe ponerse a `true` en producción y `WEB_ORIGIN` debe coincidir con el host front. El secret de JWT exige al menos 16 caracteres y la cookie expira en 15 minutos (`setAuthCookie`).
-
-### Prisma / modelos
-
-- `User` con rol `USER|ADMIN`, `cartItems` y `orders`.
-- `Product` (precio en centavos) con relación inversa.
-- `CartItem` unido a `User` + `Product` con constraint único (`userId_productId`).
-- `Order` incluye `OrderItem` y se actualiza con transacción para vaciar carrito.
-- `OrderStatus` enum (`PENDING`, `PAID`, `SHIPPED`, `COMPLETED`, `CANCELLED`).
-- El seed crea tres productos base (`Camiseta`, `Pantalón`, `Zapatos`).
+El script recoge la cookie `ecom_access` devuelta por el login, la reusa en `/auth/me` y reporta con `console.log` si cada paso pasa o falla; eso garantiza una verificación mínima (`middleware → controller → service → model`) y refuerza la idea de que ya hay automatización ligera estándar en el portafolio. Puedes ajustar `API_BASE_URL` o `COOKIE_NAME` con variables de entorno si el backend no corre en `http://localhost:4000`.
 
 ## Frontend
 
